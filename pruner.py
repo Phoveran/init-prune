@@ -113,7 +113,9 @@ def synflow_importance_score(
 
 
 def global_prune_model(model, ratio, method, dataloader=None, sample_per_classes=25):
-    if method == 'snip':
+    if method == 'mp':
+        
+    elif method == 'snip':
         score_dict = snip_importance_score(model, dataloader, sample_per_classes)
     elif method == 'grasp':
         score_dict = grasp_importance_score(model, dataloader, sample_per_classes)
