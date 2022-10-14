@@ -1,24 +1,21 @@
 import os
 import torch
-import numpy as np
 from torch import nn
-from torch.nn import functional as F
 from torch.utils.data import DataLoader
-from torch.cuda.amp import autocast, GradScaler
 from torchvision.datasets import CIFAR10
 from torchvision.models import resnet18
 from torchvision import transforms
 from tensorboardX import SummaryWriter
-from tqdm import tqdm
 import argparse
 
+from models.cifar import resnet20
 from pruner import check_sparsity, global_prune_model
-from process import train_once, test_once
+from process import train
 from misc import set_seed
 from cfg import *
 
 p = argparse.ArgumentParser()
-p.add_argument('--network', choices=["resnet20"], default="resnet20")
+p.add_argument('--network', choices=["resnet18", "resnet20"], default="resnet18")
 p.add_argument('--seed', type=int, default=7)
 p.add_argument('--num-workers', type=int, default=2)
 p.add_argument('--score-type', type=str, choices=["mp", "grasp", "synflow", "synflow_iterative"], default="mp")
@@ -71,37 +68,16 @@ elif args.network in ["resnet20"]:
     network = eval(args.network)()
     network = network.to(device)
 
+# Make Dir
+os.makedirs(save_path, exist_ok=True)
+logger = SummaryWriter(os.path.join(save_path, 'tensorboard'))
+
 # Prune
 if args.prune_ratio != 0:
     global_prune_model(network, args.prune_ratio, args.score_type, train_loader)
     check_sparsity(network, if_print=True)
 
-# Optimizer
-optimizer = torch.optim.SGD(network.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum)
-scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=decreasing_lr, gamma=0.1)
-
-# Make Dir
-os.makedirs(save_path, exist_ok=True)
-logger = SummaryWriter(os.path.join(save_path, 'tensorboard'))
-
 # Train
-best_acc = 0. 
-scaler = GradScaler()
-for epoch in range(epochs):
-    train_acc, train_loss = train_once(network=network, train_loader=train_loader, optimizer=optimizer, scheduler=scheduler, scaler=scaler, epoch=epoch, warmup_epoch=warmup_epoch, lr=lr)
-    logger.add_scalar("train/acc", train_acc, epoch)
-    logger.add_scalar("train/loss", train_loss, epoch)
-    test_acc = test_once(network=network, test_loader=test_loader, epoch=epoch)
-    logger.add_scalar("test/acc", test_acc, epoch)
-    # Save CKPT
-    state_dict = {
-        "network_dict": network.state_dict(),
-        "optimizer_dict": optimizer.state_dict(),
-        "epoch": epoch,
-        "best_acc": best_acc,
-    }
-    if test_acc > best_acc:
-        best_acc = test_acc
-        state_dict['best_acc'] = test_acc
-        torch.save(state_dict, os.path.join(save_path, 'best.pth'))
-    torch.save(state_dict, os.path.join(save_path, 'ckpt.pth'))
+train(network=network, train_loader=train_loader, test_loader=test_loader, 
+    logger=logger, save_path=save_path, epochs=epochs, lr=lr, weight_decay=weight_decay, 
+    omentum=momentum, decreasing_lr=decreasing_lr, warmup_epoch=warmup_epoch)

@@ -3,6 +3,34 @@ from misc import warmup_lr
 import torch
 from torch.cuda.amp import autocast
 from torch.nn import functional as F
+from torch.cuda.amp import autocast, GradScaler
+import os
+
+def train(network, train_loader, test_loader, logger, save_path, epochs, lr, weight_decay, momentum, decreasing_lr, warmup_epoch):
+    # Optimizer
+    optimizer = torch.optim.SGD(network.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=decreasing_lr, gamma=0.1)
+    best_acc = 0. 
+    scaler = GradScaler()
+    for epoch in range(epochs):
+        train_acc, train_loss = train_once(network=network, train_loader=train_loader, optimizer=optimizer, scheduler=scheduler, scaler=scaler, epoch=epoch, warmup_epoch=warmup_epoch, lr=lr)
+        logger.add_scalar("train/acc", train_acc, epoch)
+        logger.add_scalar("train/loss", train_loss, epoch)
+        test_acc = test_once(network=network, test_loader=test_loader, epoch=epoch)
+        logger.add_scalar("test/acc", test_acc, epoch)
+        # Save CKPT
+        state_dict = {
+            "network_dict": network.state_dict(),
+            "optimizer_dict": optimizer.state_dict(),
+            "epoch": epoch,
+            "best_acc": best_acc,
+        }
+        if test_acc > best_acc:
+            best_acc = test_acc
+            state_dict['best_acc'] = test_acc
+            torch.save(state_dict, os.path.join(save_path, 'best.pth'))
+            torch.save(network.state_dict(), os.path.join(save_path, 'state_dict.pth'))
+        torch.save(state_dict, os.path.join(save_path, 'ckpt.pth'))
 
 def train_once(network, train_loader, optimizer, scheduler, scaler, epoch, warmup_epoch, lr):
     device = next(network.parameters()).device
@@ -38,7 +66,7 @@ def test_once(network, test_loader, epoch):
     pbar = tqdm(test_loader, total=len(test_loader), desc=f"Evaluating", ncols=100)
     for x, y in pbar:
         x = x.to(device)
-        with torch.no_grad(), autocast():
+        with torch.no_grad():
             fx = network(x)
         fxs.append(fx)
         ys.append(y)
