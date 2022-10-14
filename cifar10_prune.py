@@ -18,7 +18,7 @@ p = argparse.ArgumentParser()
 p.add_argument('--network', choices=["resnet18", "resnet20"], default="resnet18")
 p.add_argument('--seed', type=int, default=7)
 p.add_argument('--num-workers', type=int, default=2)
-p.add_argument('--score-type', type=str, choices=["mp", "grasp", "synflow", "synflow_iterative"], default="mp")
+p.add_argument('--score-type', type=str, choices=["mp", "grasp", "synflow", "synflow_iterative"], default="synflow_iterative")
 p.add_argument('--prune-ratio', type=float, default=0.) 
 args = p.parse_args()
 

@@ -2,7 +2,7 @@ import os
 
 for score_type in ["synflow_iterative"]:
     for prune_ratio in [0.5, 0.75, 0.9, 0.95, 0.99, 0.995]:
-        for seed in range(780, 781):
+        for seed in range(7, 8):
             args = (
                 f"cifar10_prune.py"
                 f" --seed {seed}"
