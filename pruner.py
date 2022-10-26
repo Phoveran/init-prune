@@ -125,13 +125,11 @@ def global_prune_model(model, ratio, method, dataloader=None, structured=False, 
     elif method == 'grasp':
         score_dict = grasp_importance_score(model, dataloader, sample_per_classes)
     elif method == 'synflow':
-        score_dict = synflow_importance_score(model, dataloader)
-    elif method == 'synflow_iterative':
         pass
     else:
         raise NotImplementedError(f'Pruning Method {method} not Implemented')
 
-    if method == 'synflow_iterative':
+    if method == 'synflow':
         iteration_number = 100 # In SynFlow Paper, an iteration number of 100 performs well
         each_ratio = 1 - (1-ratio)**(1/iteration_number)
         for _ in range(iteration_number):
