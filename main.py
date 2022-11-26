@@ -18,7 +18,7 @@ p = argparse.ArgumentParser()
 p.add_argument('--network', choices=["resnet18", "resnet20"], default="resnet18")
 p.add_argument('--seed', type=int, default=7)
 p.add_argument('--num-workers', type=int, default=2)
-p.add_argument('--score-type', type=str, choices=["mp", "grasp", "synflow", "synflow_iterative"], default="synflow_iterative")
+p.add_argument('--score-type', type=str, choices=["snip", "grasp", "synflow"], default="synflow")
 p.add_argument('--prune-ratio', type=float, default=0.) 
 args = p.parse_args()
 
@@ -32,7 +32,7 @@ if args.prune_ratio == 0:
     save_path = os.path.join(results_path, args.network, "dense", f"seed{args.seed}")
 else:
     assert args.score_type != None
-    save_path = os.path.join(results_path, args.network, args.score_type, f"ratio{str(args.prune_ratio).replace('.', 'p')}", f"seed{args.seed}")
+    save_path = os.path.join(results_path, args.network, args.score_type, f"ratio{args.prune_ratio}", f"seed{args.seed}")
 epochs = 182
 warmup_epoch = 1
 lr = 0.1
