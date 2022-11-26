@@ -5,10 +5,10 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10
 from torchvision.models import resnet18
 from torchvision import transforms
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 import argparse
 
-from models.cifar import resnet20
+from models.resnet_s import resnet20
 from pruner import check_sparsity, global_prune_model
 from process import train
 from misc import set_seed

@@ -116,22 +116,16 @@ def synflow_importance_score(
     nonlinearize(model, signs)
     return score_dict
 
-
 def global_prune_model(model, ratio, method, dataloader=None, structured=False, sample_per_classes=25):
-    if method == 'mp':
-        score_dict = mp_importance_score(model)
-    elif method == 'snip':
-        score_dict = snip_importance_score(model, dataloader, sample_per_classes)
-    elif method == 'grasp':
-        score_dict = grasp_importance_score(model, dataloader, sample_per_classes)
+    if method in ['snip', 'grasp']:
+        score_dict = eval(f"{method}_importance_score")(model, dataloader, sample_per_classes)
+        prune.global_unstructured(
+            parameters=score_dict.keys(),
+            pruning_method=prune.L1Unstructured,
+            amount=ratio,
+            importance_scores=score_dict,
+        )
     elif method == 'synflow':
-        score_dict = synflow_importance_score(model, dataloader)
-    elif method == 'synflow_iterative':
-        pass
-    else:
-        raise NotImplementedError(f'Pruning Method {method} not Implemented')
-
-    if method == 'synflow_iterative':
         iteration_number = 100 # In SynFlow Paper, an iteration number of 100 performs well
         each_ratio = 1 - (1-ratio)**(1/iteration_number)
         for _ in range(iteration_number):
@@ -146,13 +140,7 @@ def global_prune_model(model, ratio, method, dataloader=None, structured=False, 
                     importance_scores=score_dict,
                 )
     else:
-        prune.global_unstructured(
-            parameters=score_dict.keys(),
-            pruning_method=prune.L1Unstructured,
-            amount=ratio,
-            importance_scores=score_dict,
-        )
-
+        raise NotImplementedError(f'Pruning Method {method} not Implemented')
 
 def check_sparsity(model, if_print=False):
     sum_list = 0

@@ -1,19 +1,20 @@
 from tqdm import tqdm
-from misc import warmup_lr
 import torch
 from torch.cuda.amp import autocast
 from torch.nn import functional as F
 from torch.cuda.amp import autocast, GradScaler
 import os
 
-def train(network, train_loader, test_loader, logger, save_path, epochs, lr, weight_decay, momentum, decreasing_lr, warmup_epoch):
+def train(network, train_loader, test_loader, logger, save_path, epochs, lr, weight_decay, momentum, decreasing_lr):
     # Optimizer
     optimizer = torch.optim.SGD(network.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=decreasing_lr, gamma=0.1)
     best_acc = 0. 
     scaler = GradScaler()
     for epoch in range(epochs):
-        train_acc, train_loss = train_once(network=network, train_loader=train_loader, optimizer=optimizer, scheduler=scheduler, scaler=scaler, epoch=epoch, warmup_epoch=warmup_epoch, lr=lr)
+        pbar = tqdm(train_loader, total=len(train_loader),
+                desc=f"Train Epo {epoch} Lr {optimizer.param_groups[0]['lr']:.1e}", ncols=100)
+        train_acc, train_loss = train_once(network=network, pbar=pbar, optimizer=optimizer, scheduler=scheduler, scaler=scaler)
         logger.add_scalar("train/acc", train_acc, epoch)
         logger.add_scalar("train/loss", train_loss, epoch)
         test_acc = test_once(network=network, test_loader=test_loader, epoch=epoch)
@@ -32,17 +33,13 @@ def train(network, train_loader, test_loader, logger, save_path, epochs, lr, wei
             torch.save(network.state_dict(), os.path.join(save_path, 'state_dict.pth'))
         torch.save(state_dict, os.path.join(save_path, 'ckpt.pth'))
 
-def train_once(network, train_loader, optimizer, scheduler, scaler, epoch, warmup_epoch, lr):
+def train_once(network, pbar, optimizer, scheduler, scaler):
     device = next(network.parameters()).device
     network.train()
     total_num = 0
     true_num = 0
     loss_sum = 0
-    pbar = tqdm(train_loader, total=len(train_loader),
-            desc=f"Train Epo {epoch} Lr {optimizer.param_groups[0]['lr']:.1e}", ncols=100)
     for i, (x, y) in enumerate(pbar):
-        if epoch < warmup_epoch:
-            warmup_lr(optimizer, epoch, i+1, warmup_epoch, len(train_loader), lr)
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
         with autocast():
@@ -58,7 +55,7 @@ def train_once(network, train_loader, optimizer, scheduler, scaler, epoch, warmu
     scheduler.step()
     return true_num/total_num, loss/total_num
 
-def test_once(network, test_loader, epoch):
+def test_once(network, test_loader):
     device = next(network.parameters()).device
     network.eval()
     fxs = []
