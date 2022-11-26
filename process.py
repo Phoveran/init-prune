@@ -17,7 +17,7 @@ def train(network, train_loader, test_loader, logger, save_path, epochs, lr, wei
         train_acc, train_loss = train_once(network=network, pbar=pbar, optimizer=optimizer, scheduler=scheduler, scaler=scaler)
         logger.add_scalar("train/acc", train_acc, epoch)
         logger.add_scalar("train/loss", train_loss, epoch)
-        test_acc = test_once(network=network, test_loader=test_loader, epoch=epoch)
+        test_acc = test_once(network=network, test_loader=test_loader)
         logger.add_scalar("test/acc", test_acc, epoch)
         # Save CKPT
         state_dict = {
@@ -39,7 +39,7 @@ def train_once(network, pbar, optimizer, scheduler, scaler):
     total_num = 0
     true_num = 0
     loss_sum = 0
-    for i, (x, y) in enumerate(pbar):
+    for x, y in pbar:
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
         with autocast():
@@ -70,4 +70,5 @@ def test_once(network, test_loader):
     fxs = torch.cat(fxs).cpu().float()
     ys = torch.cat(ys).cpu()
     acc = torch.argmax(fxs, -1).eq(ys).float().mean()
+    pbar.set_postfix_str(f"Acc {100*acc:.2f}%")
     return acc

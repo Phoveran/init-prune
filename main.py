@@ -11,14 +11,14 @@ import argparse
 from models.resnet_s import resnet20
 from pruner import check_sparsity, global_prune_model
 from process import train
-from misc import set_seed
+from misc import set_seed, gen_folder_name
 from cfg import *
 
 p = argparse.ArgumentParser()
 p.add_argument('--network', choices=["resnet18", "resnet20"], default="resnet18")
 p.add_argument('--seed', type=int, default=7)
 p.add_argument('--num-workers', type=int, default=2)
-p.add_argument('--score-type', type=str, choices=["snip", "grasp", "synflow"], default="synflow")
+p.add_argument('--score-type', type=str, choices=["snip", "grasp", "synflow"], required=True)
 p.add_argument('--prune-ratio', type=float, default=0.) 
 args = p.parse_args()
 
@@ -26,15 +26,11 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 set_seed(args.seed)
 
 assert 0 <= args.prune_ratio < 1
-batch_size = 256
-data_path = os.path.join(data_path, "CIFAR10")
-if args.prune_ratio == 0:
-    save_path = os.path.join(results_path, args.network, "dense", f"seed{args.seed}")
-else:
-    assert args.score_type != None
-    save_path = os.path.join(results_path, args.network, args.score_type, f"ratio{args.prune_ratio}", f"seed{args.seed}")
+batch_size = 512
+data_path = os.path.join(data_path, "cifar10")
+save_path = os.path.join(results_path, gen_folder_name(args))
+
 epochs = 182
-warmup_epoch = 1
 lr = 0.1
 weight_decay = 5e-4
 momentum = 0.9
@@ -80,4 +76,4 @@ if args.prune_ratio != 0:
 # Train
 train(network=network, train_loader=train_loader, test_loader=test_loader, 
     logger=logger, save_path=save_path, epochs=epochs, lr=lr, weight_decay=weight_decay, 
-    omentum=momentum, decreasing_lr=decreasing_lr, warmup_epoch=warmup_epoch)
+    momentum=momentum, decreasing_lr=decreasing_lr)
