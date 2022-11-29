@@ -15,7 +15,7 @@ from misc import set_seed, gen_folder_name
 from cfg import *
 
 p = argparse.ArgumentParser()
-p.add_argument('--network', choices=["resnet18", "resnet20"], default="resnet18")
+p.add_argument('--network', choices=["resnet18", "resnet20"], default="resnet20")
 p.add_argument('--seed', type=int, default=7)
 p.add_argument('--num-workers', type=int, default=2)
 p.add_argument('--score-type', type=str, choices=["snip", "grasp", "synflow"], required=True)
