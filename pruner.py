@@ -22,6 +22,7 @@ def fetch_data(dataloader, num_classes, samples_per_class):
         if len(mark) == num_classes:
             break
     X, y = torch.cat([torch.cat(_, 0) for _ in datas]), torch.cat([torch.cat(_) for _ in labels]).view(-1)
+    del dataloader_iter
     return X, y
 
 def mp_importance_score(model):
@@ -47,10 +48,9 @@ def snip_importance_score(
     loss.backward()
     for m in model.modules():
         if isinstance(m, (Conv2d,)):
-            score_dict[(m, 'weight')] = m.weight.grad.data.abs()
+            score_dict[(m, 'weight')] = m.weight.grad.clone().detach().abs()
     model.zero_grad()
     return score_dict
-
 
 def grasp_importance_score(
     model,
@@ -72,10 +72,9 @@ def grasp_importance_score(
 
     for m in model.modules():
         if isinstance(m, (Conv2d,)):
-            score_dict[(m, 'weight')] = -m.weight.data * m.weight.grad.data
+            score_dict[(m, 'weight')] = -m.weight.clone().detach() * m.weight.grad.clone().detach()
     model.zero_grad()
     return score_dict
-
 
 def synflow_importance_score(
     model,
@@ -109,15 +108,14 @@ def synflow_importance_score(
     for m in model.modules():
         if isinstance(m, (Conv2d,)):
             if hasattr(m, "weight_orig"):
-                score_dict[(m, 'weight')] = (m.weight_orig.grad.data * m.weight.data).abs()
+                score_dict[(m, 'weight')] = (m.weight_orig.grad.clone().detach() * m.weight.clone().detach()).abs()
             else:
-                score_dict[(m, 'weight')] = (m.weight.grad.data * m.weight.data).abs()
+                score_dict[(m, 'weight')] = (m.weight.grad.clone().detach() * m.weight.clone().detach()).abs()
     model.zero_grad()
     nonlinearize(model, signs)
     return score_dict
 
-
-def global_prune_model(model, ratio, method, dataloader=None, structured=False, sample_per_classes=25):
+def global_prune_model(model, ratio, method, dataloader=None, sample_per_classes=25):
     if method in ['snip', 'grasp']:
         score_dict = eval(f"{method}_importance_score")(model, dataloader, sample_per_classes)
         prune.global_unstructured(
@@ -131,18 +129,15 @@ def global_prune_model(model, ratio, method, dataloader=None, structured=False, 
         each_ratio = 1 - (1-ratio)**(1/iteration_number)
         for _ in range(iteration_number):
             score_dict = synflow_importance_score(model, dataloader)
-            if structured:
-                pass
-            else:
-                prune.global_unstructured(
-                    parameters=score_dict.keys(),
-                    pruning_method=prune.L1Unstructured,
-                    amount=each_ratio,
-                    importance_scores=score_dict,
-                )
+            prune.global_unstructured(
+                parameters=score_dict.keys(),
+                pruning_method=prune.L1Unstructured,
+                amount=each_ratio,
+                importance_scores=score_dict,
+            )
     else:
         raise NotImplementedError(f'Pruning Method {method} not Implemented')
-
+    torch.cuda.empty_cache()
 
 def check_sparsity(model, if_print=False):
     sum_list = 0
@@ -164,7 +159,6 @@ def check_sparsity(model, if_print=False):
 
     return remain_weight_ratie
 
-
 def prune_model_custom(model, mask_dict):
     # print('Pruning with custom mask (all conv layers)')
     for name, m in model.named_modules():
@@ -175,14 +169,12 @@ def prune_model_custom(model, mask_dict):
             else:
                 print('Can not fing [{}] in mask_dict'.format(mask_name))
 
-
 def extract_mask(model_dict):
     new_dict = {}
     for key in model_dict.keys():
         if 'mask' in key:
             new_dict[key] = deepcopy(model_dict[key])
     return new_dict
-
 
 def remove_prune(model):
     # print('Remove hooks for multiplying masks (all conv layers)')

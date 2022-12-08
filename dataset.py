@@ -18,9 +18,9 @@ def prepare_dataset(dataset, data_path):
             transforms.ToTensor(),
             transforms.Normalize(mean, std),
         ])
-        train_data = datasets.CIFAR10(root = data_path, train = True, download = False, transform = train_transform)
+        train_data = datasets.CIFAR10(root = data_path, train = True, download = True, transform = train_transform)
         train_loader = DataLoader(train_data, 512, shuffle = True, num_workers=2)
-        test_data = datasets.CIFAR10(root = data_path, train = False, download = False, transform = test_transform)
+        test_data = datasets.CIFAR10(root = data_path, train = False, download = True, transform = test_transform)
         test_loader = DataLoader(test_data, 512, shuffle = False, num_workers=2)
         cls_num = 10
     elif dataset == "cifar100":

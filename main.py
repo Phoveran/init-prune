@@ -26,7 +26,6 @@ set_seed(args.seed)
 
 assert 0 <= args.prune_ratio < 1
 batch_size = 512
-data_path = os.path.join(data_path, "cifar10")
 save_path = os.path.join(results_path, gen_folder_name(args))
 
 epochs = 182
@@ -59,5 +58,5 @@ if args.prune_ratio != 0:
 
 # Train
 train(network=network, train_loader=train_loader, test_loader=test_loader, 
-    logger=logger, save_path=save_path, epochs=epochs, lr=lr, weight_decay=weight_decay, 
+    logger=logger, save_path=save_path, epochs=epochs, lr=lr, weight_decay=weight_decay,
     momentum=momentum, decreasing_lr=decreasing_lr)
