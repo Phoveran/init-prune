@@ -116,6 +116,7 @@ def synflow_importance_score(
     nonlinearize(model, signs)
     return score_dict
 
+
 def global_prune_model(model, ratio, method, dataloader=None, structured=False, sample_per_classes=25):
     if method in ['snip', 'grasp']:
         score_dict = eval(f"{method}_importance_score")(model, dataloader, sample_per_classes)
@@ -141,6 +142,7 @@ def global_prune_model(model, ratio, method, dataloader=None, structured=False, 
                 )
     else:
         raise NotImplementedError(f'Pruning Method {method} not Implemented')
+
 
 def check_sparsity(model, if_print=False):
     sum_list = 0

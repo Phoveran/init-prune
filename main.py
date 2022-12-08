@@ -1,14 +1,12 @@
 import os
 import torch
 from torch import nn
-from torch.utils.data import DataLoader
-from torchvision.datasets import CIFAR10
 from torchvision.models import resnet18
-from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 import argparse
 
 from models.resnet_s import resnet20
+from dataset import prepare_dataset
 from pruner import check_sparsity, global_prune_model
 from process import train
 from misc import set_seed, gen_folder_name
@@ -19,6 +17,7 @@ p.add_argument('--network', choices=["resnet18", "resnet20"], default="resnet20"
 p.add_argument('--seed', type=int, default=7)
 p.add_argument('--num-workers', type=int, default=2)
 p.add_argument('--score-type', type=str, choices=["snip", "grasp", "synflow"], required=True)
+p.add_argument('--dataset', type=str, choices=["cifar10", "cifar100", "flowers102", "oxfordpets", "country211"], required=True)
 p.add_argument('--prune-ratio', type=float, default=0.) 
 args = p.parse_args()
 
@@ -36,32 +35,17 @@ weight_decay = 5e-4
 momentum = 0.9
 decreasing_lr = [91, 136]
 
-# Data
-mean = [0.4914, 0.4822, 0.4465]
-std = [0.2471, 0.2435, 0.2616]
-train_transform = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize(mean, std),
-])
-test_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize(mean, std),
-])
-train_data = CIFAR10(root = data_path, train = True, download = False, transform = train_transform)
-train_loader = DataLoader(train_data, batch_size, shuffle = True, num_workers=args.num_workers)
-test_data = CIFAR10(root = data_path, train = False, download = False, transform = test_transform)
-test_loader = DataLoader(test_data, batch_size, shuffle = False, num_workers=args.num_workers)
+train_loader, test_loader, cls_num = prepare_dataset(args.dataset, data_path)
 
 # Network
 if args.network in ["resnet18"]:
-    network = eval(args.network)(num_classes = 10)
-    network.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
-    network.maxpool = nn.Identity()
+    network = eval(args.network)(num_classes = cls_num)
+    if args.dataset in ["cifar10", "cifar100"]:
+        network.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        network.maxpool = nn.Identity()
     network = network.to(device)
 elif args.network in ["resnet20"]:
-    network = eval(args.network)()
+    network = eval(args.network)(cls_num)
     network = network.to(device)
 
 # Make Dir
