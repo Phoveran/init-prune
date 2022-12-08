@@ -115,7 +115,7 @@ def synflow_importance_score(
     nonlinearize(model, signs)
     return score_dict
 
-def global_prune_model(model, ratio, method, dataloader=None, sample_per_classes=25):
+def global_prune_model(model, ratio, method, dataloader=None, sample_per_classes=5):
     if method in ['snip', 'grasp']:
         score_dict = eval(f"{method}_importance_score")(model, dataloader, sample_per_classes)
         prune.global_unstructured(
