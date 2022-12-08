@@ -57,12 +57,13 @@ def prepare_dataset(dataset, data_path):
         cls_num = 10
     elif dataset == "gtsrb":
         train_transform = transforms.Compose([
-            transforms.RandomCrop(48, padding=4),
+            transforms.RandomResizedCrop((32, 32)),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean, std),
         ])
         test_transform = transforms.Compose([
+            transforms.Resize((32, 32)),
             transforms.ToTensor(),
             transforms.Normalize(mean, std),
         ])

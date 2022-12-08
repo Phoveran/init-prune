@@ -17,7 +17,7 @@ p.add_argument('--network', choices=["resnet18", "resnet20"], default="resnet20"
 p.add_argument('--seed', type=int, default=7)
 p.add_argument('--num-workers', type=int, default=2)
 p.add_argument('--score-type', type=str, choices=["snip", "grasp", "synflow"], required=True)
-p.add_argument('--dataset', type=str, choices=["cifar10", "cifar100", "flowers102", "oxfordpets", "country211"], required=True)
+p.add_argument('--dataset', type=str, choices=["cifar10", "cifar100", "svhn", "gtsrb"], required=True)
 p.add_argument('--prune-ratio', type=float, default=0.) 
 args = p.parse_args()
 
