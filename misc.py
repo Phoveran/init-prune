@@ -13,7 +13,7 @@ def gen_folder_name(args):
     def get_attr(inst, arg):
         value = getattr(inst, arg)
         if isinstance(value, float):
-            return f"{value:.4f}"
+            return f"{value:.8f}"
         else:
             return value
     folder_name = ''
